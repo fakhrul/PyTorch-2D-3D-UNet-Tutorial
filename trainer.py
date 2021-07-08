@@ -121,10 +121,9 @@ class Trainer:
                 num_correct += (preds == target).sum()
                 num_pixels += torch.numel(preds)
                 accuracy = num_correct / num_pixels * 100
-                accuracy_np = accuracy.numpy()
-                accuracy_list.append(accuracy_np)
+                accuracy_list.append(accuracy.cpu().numpy())
 
-                batch_iter.set_description(f'Validation: (loss {loss_value:.4f}), Accuracy: ({accuracy_np:.2f})')
+                batch_iter.set_description(f'Validation: (loss {loss_value:.4f}), Accuracy: ({accuracy:.2f}), type:{type(accuracy)}')
 
         self.validation_loss.append(np.mean(valid_losses))
         self.training_accuracy.append(np.mean(accuracy_list))
