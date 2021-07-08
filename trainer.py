@@ -123,9 +123,12 @@ class Trainer:
                 accuracy = num_correct / num_pixels * 100
                 accuracy_list.append(accuracy.cpu().numpy())
 
-                batch_iter.set_description(f'Validation: (loss {loss_value:.4f}), Accuracy: ({accuracy:.2f}), type:{type(accuracy)}')
+                batch_iter.set_description(f'Validation: (loss {loss_value:.4f}), Accuracy: ({accuracy:.2f})')
 
+        vl = np.mean(valid_losses)
+        al = np.mean(accuracy_list)
         self.validation_loss.append(np.mean(valid_losses))
         self.training_accuracy.append(np.mean(accuracy_list))
 
+        print(f'EPOCH: {self.epochs}, Validation Loss: {np.mean(valid_losses)}, Accuracy: {np.mean(accuracy_list)}')
         batch_iter.close()
