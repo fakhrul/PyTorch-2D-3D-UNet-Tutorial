@@ -57,7 +57,7 @@ class Trainer:
                     self.lr_scheduler.batch(self.validation_loss[i])  # learning rate scheduler step with validation loss
                 else:
                     self.lr_scheduler.batch()  # learning rate scheduler step
-        return self.training_loss, self.validation_loss, self.learning_rate
+        return self.training_loss, self.validation_loss, self.learning_rate, self.training_accuracy
 
     def get_accuracy(self, device="cuda"):
         num_correct = 0
@@ -103,7 +103,6 @@ class Trainer:
         self.learning_rate.append(self.optimizer.param_groups[0]['lr'])
 
         accuracy = self.get_accuracy()
-
         self.training_accuracy.append(accuracy)
 
         batch_iter.close()
