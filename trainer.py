@@ -30,6 +30,7 @@ class Trainer:
         self.training_loss = []
         self.validation_loss = []
         self.learning_rate = []
+        self.training_accuracy = []
 
     def run_trainer(self):
 
@@ -58,6 +59,22 @@ class Trainer:
                     self.lr_scheduler.batch()  # learning rate scheduler step
         return self.training_loss, self.validation_loss, self.learning_rate
 
+    def get_accuracy(self, device="cuda"):
+        num_correct = 0
+        num_pixels = 0
+
+        self.model.eval()
+        with torch.no_grad():
+            for x, y in self.validation_DataLoader:
+                x = x.to(device)
+                y = y.to(device)
+                preds = torch.sigmoid(self.model(x))
+                preds = (preds > 0.5).float()
+                num_correct += (preds == y).sum()
+                num_pixels += torch.numel(preds)
+        accuracy = num_correct / num_pixels * 100
+        return accuracy
+
     def _train(self):
 
         if self.notebook:
@@ -84,6 +101,10 @@ class Trainer:
 
         self.training_loss.append(np.mean(train_losses))
         self.learning_rate.append(self.optimizer.param_groups[0]['lr'])
+
+        accuracy = self.get_accuracy()
+
+        self.training_accuracy.append(accuracy)
 
         batch_iter.close()
 
