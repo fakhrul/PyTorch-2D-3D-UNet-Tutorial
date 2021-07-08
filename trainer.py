@@ -57,23 +57,8 @@ class Trainer:
                     self.lr_scheduler.batch(self.validation_loss[i])  # learning rate scheduler step with validation loss
                 else:
                     self.lr_scheduler.batch()  # learning rate scheduler step
+                    
         return self.training_loss, self.validation_loss, self.learning_rate, self.training_accuracy
-
-    def get_accuracy(self, device="cuda"):
-        num_correct = 0
-        num_pixels = 0
-
-        self.model.eval()
-        with torch.no_grad():
-            for x, y in self.validation_DataLoader:
-                x = x.to(device)
-                y = y.to(device)
-                preds = torch.sigmoid(self.model(x))
-                preds = (preds > 0.5).float()
-                num_correct += (preds == y).sum()
-                num_pixels += torch.numel(preds)
-        accuracy = num_correct / num_pixels * 100
-        return accuracy
 
     def _train(self):
 
@@ -102,8 +87,6 @@ class Trainer:
         self.training_loss.append(np.mean(train_losses))
         self.learning_rate.append(self.optimizer.param_groups[0]['lr'])
 
-        accuracy = self.get_accuracy()
-        self.training_accuracy.append(accuracy)
 
         batch_iter.close()
 
@@ -118,6 +101,10 @@ class Trainer:
         valid_losses = []  # accumulate the losses here
         batch_iter = tqdm(enumerate(self.validation_DataLoader), 'Validation', total=len(self.validation_DataLoader),
                           leave=False)
+        
+        num_correct = 0
+        num_pixels = 0
+        accuracy_list = []
 
         for i, (x, y) in batch_iter:
             input, target = x.to(self.device), y.to(self.device)  # send to device (GPU or CPU)
@@ -128,8 +115,17 @@ class Trainer:
                 loss_value = loss.item()
                 valid_losses.append(loss_value)
 
-                batch_iter.set_description(f'Validation: (loss {loss_value:.4f})')
+                # finding the accuracy
+                preds = torch.sigmoid(out)
+                preds = (preds > 0.5).float()
+                num_correct += (preds == target).sum()
+                num_pixels += torch.numel(preds)
+                accuracy = num_correct / num_pixels * 100
+                accuracy_list.append(accuracy)
+
+                batch_iter.set_description(f'Validation: (loss {loss_value:.4f}), Accuracy: ({accuracy:.2f})')
 
         self.validation_loss.append(np.mean(valid_losses))
+        self.training_accuracy.append(np.mean(accuracy_list))
 
         batch_iter.close()
