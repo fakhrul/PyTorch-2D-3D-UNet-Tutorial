@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 
-
 class Trainer:
     def __init__(self,
                  model: torch.nn.Module,
@@ -87,7 +86,7 @@ class Trainer:
         self.training_loss.append(np.mean(train_losses))
         self.learning_rate.append(self.optimizer.param_groups[0]['lr'])
 
-
+        print(f'EPOCH: {self.epoch}, Training Loss: {np.mean(train_losses)}')
         batch_iter.close()
 
     def dice_loss(self, inputs, target):
@@ -99,12 +98,6 @@ class Trainer:
         return intersection / union
 
     def mean_IOU(self, target, predicted):
-
-        if target.dim() == 3:
-            target = target.reshape(-1,1, target.shape[1], target.shape[2])
-            print("reshapping", target.shape)
-            # return
-
         if target.dim() != 4:
             print("target has dim", target.dim(), ", Must be 4.")
             return
@@ -118,9 +111,9 @@ class Trainer:
             target_arr = target[i, :, :, :].clone().detach().cpu().numpy()
             predicted_arr = predicted[i, :, :, :].clone().detach().cpu().numpy()
             intersection = np.logical_and(target_arr, predicted_arr).sum()
-            print('intersection',intersection)
+            #print('intersection',intersection)
             union = np.logical_or(target_arr, predicted_arr).sum()
-            print('union',union)
+            #print('union',union)
             if union == 0:
                 iou_score = 0
             else :
@@ -156,19 +149,25 @@ class Trainer:
                 valid_losses.append(loss_value)
 
                 # finding the accuracy
-                preds = torch.sigmoid(out)
-                preds = (preds > 0.5).float()
+                #preds = torch.sigmoid(out)
+                #preds = (preds > 0.5).float()
                 # num_correct += (preds == target).sum()
                 # num_pixels += torch.numel(preds)
                 # accuracy = num_correct / num_pixels * 100
                 # accuracy_list.append(accuracy.cpu().numpy())
-                meanIou = self.mean_IOU(target,preds)
+                target_reshape = target.reshape(-1, 1, target.shape[1],target.shape[2])
+                out_bg_channel = out[:,0:1,:,:]
+                out_boat_channel = out[:,1:2,:,:]
+
+                #print('BG', (out_bg_channel > 0).sum(), ' Boat', (out_boat_channel > 0).sum())
+                
+                meanIou = self.mean_IOU(target_reshape,out_boat_channel)
                 meanIou_list.append(meanIou)
 
-                batch_iter.set_description(f'Validation: (loss {loss_value:.4f}, iou {meanIou:.2f})')
+                batch_iter.set_description(f'Validation: (loss {loss_value:.4f}, iou {meanIou:.4f})')
 
         self.validation_loss.append(np.mean(valid_losses))
         self.validation_iou.append(np.mean(meanIou_list))
 
-        print(f'EPOCH: {self.epoch}, Validation Loss: {np.mean(valid_losses)}, Accuracy: {np.mean(meanIou_list)}')
+        print(f'EPOCH: {self.epoch}, Validation Loss: {np.mean(valid_losses)}, IOU: {np.mean(meanIou_list)}')
         batch_iter.close()
