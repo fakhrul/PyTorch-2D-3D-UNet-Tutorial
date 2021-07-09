@@ -102,7 +102,7 @@ class Trainer:
 
         if target.dim() == 3:
             target = target.reshape(-1,1, target.shape[1], target.shape[2])
-            # print("target has dim", target.dim(), ", Must be 4.")
+            print("reshapping", target.shape)
             # return
 
         if target.dim() != 4:
@@ -163,7 +163,7 @@ class Trainer:
                 # accuracy = num_correct / num_pixels * 100
                 # accuracy_list.append(accuracy.cpu().numpy())
                 meanIou = self.mean_IOU(target,preds)
-                meanIou_list.append(meanIou.cpu().numpy())
+                meanIou_list.append(meanIou)
 
                 batch_iter.set_description(f'Validation: (loss {loss_value:.4f}, iou {meanIou:.2f})')
 
