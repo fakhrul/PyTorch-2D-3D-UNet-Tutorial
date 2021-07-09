@@ -58,7 +58,7 @@ class Trainer:
                 else:
                     self.lr_scheduler.batch()  # learning rate scheduler step
                     
-        return self.training_loss, self.validation_loss, self.learning_rate, self.training_accuracy
+        return self.training_loss, self.validation_loss, self.learning_rate, self.validation_iou
 
     def _train(self):
 
