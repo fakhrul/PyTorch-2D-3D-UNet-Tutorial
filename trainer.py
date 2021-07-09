@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 
+
 class Trainer:
     def __init__(self,
                  model: torch.nn.Module,
