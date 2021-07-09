@@ -98,7 +98,8 @@ class Trainer:
         if target.sum() == 0 and inputs.sum() == 0:
             return 1.0
 
-        return intersection / union
+        loss = intersection / union
+        return loss.item()
 
     def mean_IOU(self, target, predicted):
         if target.dim() != 4:
