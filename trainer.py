@@ -101,7 +101,7 @@ class Trainer:
     def mean_IOU(self, target, predicted):
 
         if target.dim() == 3:
-            target = target.reshape(-1,1, target.shape[2], target.shape[3])
+            target = target.reshape(-1,1, target.shape[1], target.shape[2])
             # print("target has dim", target.dim(), ", Must be 4.")
             # return
 
