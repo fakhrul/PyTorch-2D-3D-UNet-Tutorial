@@ -99,12 +99,18 @@ class Trainer:
         return intersection / union
 
     def mean_IOU(self, target, predicted):
-        if target.shape != predicted.shape:
-            print("target has dimension", target.shape, ", predicted values have shape", predicted.shape)
-            return
-            
+
+        if target.dim() == 3:
+            target = target.reshape(-1,1, target.shape[2], target.shape[3])
+            # print("target has dim", target.dim(), ", Must be 4.")
+            # return
+
         if target.dim() != 4:
             print("target has dim", target.dim(), ", Must be 4.")
+            return
+
+        if target.shape != predicted.shape:
+            print("target has dimension", target.shape, ", predicted values have shape", predicted.shape)
             return
         
         iousum = 0
@@ -136,8 +142,8 @@ class Trainer:
         batch_iter = tqdm(enumerate(self.validation_DataLoader), 'Validation', total=len(self.validation_DataLoader),
                           leave=False)
         
-        num_correct = 0
-        num_pixels = 0
+        # num_correct = 0
+        # num_pixels = 0
         meanIou_list = []
 
         for i, (x, y) in batch_iter:
