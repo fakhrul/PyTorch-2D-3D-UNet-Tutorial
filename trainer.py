@@ -156,13 +156,13 @@ class Trainer:
                 valid_losses.append(loss_value)
 
                 # finding the accuracy
-                # preds = torch.sigmoid(out)
-                # preds = (preds > 0.5).float()
+                preds = torch.sigmoid(out)
+                preds = (preds > 0.5).float()
                 # num_correct += (preds == target).sum()
                 # num_pixels += torch.numel(preds)
                 # accuracy = num_correct / num_pixels * 100
                 # accuracy_list.append(accuracy.cpu().numpy())
-                meanIou = self.mean_IOU(target,out)
+                meanIou = self.mean_IOU(target,preds)
                 meanIou_list.append(meanIou.cpu().numpy())
 
                 batch_iter.set_description(f'Validation: (loss {loss_value:.4f}, iou {meanIou:.2f})')
