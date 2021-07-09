@@ -30,6 +30,8 @@ class Trainer:
         self.validation_loss = []
         self.learning_rate = []
         self.validation_iou = []
+        self.validation_dice = []
+        
 
     def run_trainer(self):
 
@@ -57,7 +59,7 @@ class Trainer:
                 else:
                     self.lr_scheduler.batch()  # learning rate scheduler step
                     
-        return self.training_loss, self.validation_loss, self.learning_rate, self.validation_iou
+        return self.training_loss, self.validation_loss, self.learning_rate, self.validation_iou, self.validation_dice
 
     def _train(self):
 
@@ -138,6 +140,7 @@ class Trainer:
         # num_correct = 0
         # num_pixels = 0
         meanIou_list = []
+        diceLoss_list = []
 
         for i, (x, y) in batch_iter:
             input, target = x.to(self.device), y.to(self.device)  # send to device (GPU or CPU)
@@ -154,10 +157,16 @@ class Trainer:
                 meanIou = self.mean_IOU(target_unsqueeze,out_t)
                 meanIou_list.append(meanIou)
 
-                batch_iter.set_description(f'Validation: (loss {loss_value:.4f}, iou {meanIou:.4f})')
+                diceLoss = self.dice_loss(target_unsqueeze, out_t)
+                diceLoss_list.append(diceLoss)
+
+
+                batch_iter.set_description(f'Validation: (loss {loss_value:.4f}, iou {meanIou:.4f}, dice {diceLoss:.4f})')
 
         self.validation_loss.append(np.mean(valid_losses))
         self.validation_iou.append(np.mean(meanIou_list))
+        self.validation_dice.append(np.mean(diceLoss_list))
 
-        print(f'EPOCH: {self.epoch}, Validation Loss: {np.mean(valid_losses)}, IOU: {np.mean(meanIou_list)}')
+
+        print(f'EPOCH: {self.epoch}, Validation Loss: {np.mean(valid_losses)}, IOU: {np.mean(meanIou_list)}, DICE: {np.mean(diceLoss_list)}')
         batch_iter.close()
