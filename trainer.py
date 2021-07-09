@@ -30,7 +30,7 @@ class Trainer:
         self.training_loss = []
         self.validation_loss = []
         self.learning_rate = []
-        self.training_accuracy = []
+        self.validation_iou = []
 
     def run_trainer(self):
 
@@ -90,6 +90,40 @@ class Trainer:
 
         batch_iter.close()
 
+    def dice_loss(self, inputs, target):
+        intersection = 2.0 * (target * inputs).sum()
+        union = target.sum() + inputs.sum()
+        if target.sum() == 0 and inputs.sum() == 0:
+            return 1.0
+
+        return intersection / union
+
+    def mean_IOU(self, target, predicted):
+        if target.shape != predicted.shape:
+            print("target has dimension", target.shape, ", predicted values have shape", predicted.shape)
+            return
+            
+        if target.dim() != 4:
+            print("target has dim", target.dim(), ", Must be 4.")
+            return
+        
+        iousum = 0
+        for i in range(target.shape[0]):
+            target_arr = target[i, :, :, :].clone().detach().cpu().numpy()
+            predicted_arr = predicted[i, :, :, :].clone().detach().cpu().numpy()
+            intersection = np.logical_and(target_arr, predicted_arr).sum()
+            print('intersection',intersection)
+            union = np.logical_or(target_arr, predicted_arr).sum()
+            print('union',union)
+            if union == 0:
+                iou_score = 0
+            else :
+                iou_score = intersection / union
+            iousum +=iou_score
+            
+        miou = iousum/target.shape[0]
+        return miou
+        
     def _validate(self):
 
         if self.notebook:
@@ -104,7 +138,7 @@ class Trainer:
         
         num_correct = 0
         num_pixels = 0
-        accuracy_list = []
+        meanIou_list = []
 
         for i, (x, y) in batch_iter:
             input, target = x.to(self.device), y.to(self.device)  # send to device (GPU or CPU)
@@ -116,19 +150,19 @@ class Trainer:
                 valid_losses.append(loss_value)
 
                 # finding the accuracy
-                preds = torch.sigmoid(out)
-                preds = (preds > 0.5).float()
-                num_correct += (preds == target).sum()
-                num_pixels += torch.numel(preds)
-                accuracy = num_correct / num_pixels * 100
-                accuracy_list.append(accuracy.cpu().numpy())
+                # preds = torch.sigmoid(out)
+                # preds = (preds > 0.5).float()
+                # num_correct += (preds == target).sum()
+                # num_pixels += torch.numel(preds)
+                # accuracy = num_correct / num_pixels * 100
+                # accuracy_list.append(accuracy.cpu().numpy())
+                meanIou = self.mean_IOU(target,out)
+                meanIou_list.append(meanIou.cpu().numpy())
 
-                batch_iter.set_description(f'Validation: (loss {loss_value:.4f}), Accuracy: ({accuracy:.2f})')
+                batch_iter.set_description(f'Validation: (loss {loss_value:.4f}, iou {meanIou:.2f})')
 
-        vl = np.mean(valid_losses)
-        al = np.mean(accuracy_list)
         self.validation_loss.append(np.mean(valid_losses))
-        self.training_accuracy.append(np.mean(accuracy_list))
+        self.validation_iou.append(np.mean(meanIou_list))
 
-        print(f'EPOCH: {self.epochs}, Validation Loss: {np.mean(valid_losses)}, Accuracy: {np.mean(accuracy_list)}')
+        print(f'EPOCH: {self.epoch}, Validation Loss: {np.mean(valid_losses)}, Accuracy: {np.mean(meanIou_list)}')
         batch_iter.close()
