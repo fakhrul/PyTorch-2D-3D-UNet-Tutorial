@@ -148,20 +148,10 @@ class Trainer:
                 loss_value = loss.item()
                 valid_losses.append(loss_value)
 
-                # finding the accuracy
-                #preds = torch.sigmoid(out)
-                #preds = (preds > 0.5).float()
-                # num_correct += (preds == target).sum()
-                # num_pixels += torch.numel(preds)
-                # accuracy = num_correct / num_pixels * 100
-                # accuracy_list.append(accuracy.cpu().numpy())
-                target_reshape = target.reshape(-1, 1, target.shape[1],target.shape[2])
-                out_bg_channel = out[:,0:1,:,:]
-                out_boat_channel = out[:,1:2,:,:]
-
-                #print('BG', (out_bg_channel > 0).sum(), ' Boat', (out_boat_channel > 0).sum())
-                
-                meanIou = self.mean_IOU(target_reshape,out_boat_channel)
+                # finding the IoU
+                out_t = torch.argmax(out, dim=1).unsqueeze(1)
+                target_unsqueeze = target.unsqueeze(1)
+                meanIou = self.mean_IOU(target_unsqueeze,out_t)
                 meanIou_list.append(meanIou)
 
                 batch_iter.set_description(f'Validation: (loss {loss_value:.4f}, iou {meanIou:.4f})')
