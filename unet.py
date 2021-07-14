@@ -92,6 +92,9 @@ def get_activation(activation: str):
         return nn.LeakyReLU(negative_slope=0.1)
     elif activation == 'elu':
         return nn.ELU()
+    elif activation == 'silu':
+        return nn.SiLU()
+
 
 
 def get_normalization(normalization: str,
