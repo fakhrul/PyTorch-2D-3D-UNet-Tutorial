@@ -10,6 +10,7 @@ class Trainer:
                  optimizer: torch.optim.Optimizer,
                  training_DataLoader: torch.utils.data.Dataset,
                  validation_DataLoader: torch.utils.data.Dataset = None,
+                 test_DataLoader: torch.utils.data.Dataset = None,
                  lr_scheduler: torch.optim.lr_scheduler = None,
                  epochs: int = 100,
                  epoch: int = 0,
@@ -22,6 +23,7 @@ class Trainer:
         self.lr_scheduler = lr_scheduler
         self.training_DataLoader = training_DataLoader
         self.validation_DataLoader = validation_DataLoader
+        self.test_DataLoader = test_DataLoader
         self.device = device
         self.epochs = epochs
         self.epoch = epoch
@@ -32,6 +34,10 @@ class Trainer:
         self.learning_rate = []
         self.validation_iou = []
         self.validation_dice = []
+        
+        self.test_loss = []
+        self.test_iou = []
+        self.test_dice = []
         
 
     def run_trainer(self):
@@ -53,6 +59,9 @@ class Trainer:
             if self.validation_DataLoader is not None:
                 self._validate()
 
+            if self.test_DataLoader is not None:
+                self._testValidate()
+
             """Learning rate scheduler block"""
             if self.lr_scheduler is not None:
                 if self.validation_DataLoader is not None and self.lr_scheduler.__class__.__name__ == 'ReduceLROnPlateau':
@@ -60,7 +69,7 @@ class Trainer:
                 else:
                     self.lr_scheduler.batch()  # learning rate scheduler step
                     
-        return self.training_loss, self.validation_loss, self.learning_rate, self.validation_iou, self.validation_dice
+        return self.training_loss, self.validation_loss, self.learning_rate, self.validation_iou, self.validation_dice, self.test_loss, self.test_iou, self.test_dice
 
     def _train(self):
 
@@ -171,4 +180,48 @@ class Trainer:
 
 
         print(f'EPOCH: {self.epoch}, Validation Loss: {np.mean(valid_losses)}, IOU: {np.mean(meanIou_list)}, DICE: {np.mean(diceLoss_list)}')
+        batch_iter.close()
+
+    def _testValidate(self):
+
+        if self.notebook:
+            from tqdm.notebook import tqdm, trange
+        else:
+            from tqdm import tqdm, trange
+
+        self.model.eval()  # evaluation mode
+        valid_losses = []  # accumulate the losses here
+        batch_iter = tqdm(enumerate(self.test_DataLoader), 'Test', total=len(self.test_DataLoader),
+                          leave=False)
+        
+        meanIou_list = []
+        diceLoss_list = []
+
+        for i, (x, y) in batch_iter:
+            input, target = x.to(self.device), y.to(self.device)  # send to device (GPU or CPU)
+
+            with torch.no_grad():
+                out = self.model(input)
+                loss = self.criterion(out, target)
+                loss_value = loss.item()
+                valid_losses.append(loss_value)
+
+                # finding the IoU
+                out_t = torch.argmax(out, dim=1).unsqueeze(1)
+                target_unsqueeze = target.unsqueeze(1)
+                meanIou = self.mean_IOU(target_unsqueeze,out_t)
+                meanIou_list.append(meanIou)
+
+                diceLoss = self.dice_loss(target_unsqueeze, out_t)
+                diceLoss_list.append(diceLoss)
+
+
+                batch_iter.set_description(f'TEST: (loss {loss_value:.4f}, iou {meanIou:.4f}, dice {diceLoss:.4f})')
+
+        self.test_loss.append(np.mean(valid_losses))
+        self.test_iou.append(np.mean(meanIou_list))
+        self.test_dice.append(np.mean(diceLoss_list))
+
+
+        print(f'EPOCH: {self.epoch}, TEST Loss: {np.mean(valid_losses)}, IOU: {np.mean(meanIou_list)}, DICE: {np.mean(diceLoss_list)}')
         batch_iter.close()
